@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class RedisIdWorker {
 
-    private StringRedisTemplate stringRedisTemplate;
+    private static StringRedisTemplate stringRedisTemplate;
 
     public RedisIdWorker(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -31,7 +31,7 @@ public class RedisIdWorker {
      */
     private static final int COUNT_BITS = 32;
 
-    public Long nextId(String keyPrefix) {
+    public static long nextId(String keyPrefix) {
         // 1.生成时间戳
         LocalDateTime now = LocalDateTime.now();
         long nowSecond = now.toEpochSecond(ZoneOffset.UTC);
