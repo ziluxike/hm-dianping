@@ -3,6 +3,7 @@ package com.hmdp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,11 +17,11 @@ import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,12 +72,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (RegexUtils.isPhoneInvalid(loginForm.getPhone())) {
             Result.fail("手机号格式错误!");
         }
+
         // 2.从redis获取验证码并校验
         String cacheCode = stringRedisTemplate.opsForValue().get(RedisConstants.LOGIN_CODE_KEY + loginForm.getPhone());
         String code = loginForm.getCode();
         if (code == null || !Objects.equals(cacheCode, code)) {
-            Result.fail("验证码错误!");
+            Result.fail("验证码错误或已过期!");
         }
+
+        // 设置为已过期
+        stringRedisTemplate.delete(RedisConstants.LOGIN_CODE_KEY + loginForm.getPhone());
 
         // 3.根据手机号查询用户
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
@@ -104,6 +109,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 RedisConstants.LOGIN_USER_TTL, TimeUnit.MINUTES
         );
         return Result.ok(token);
+    }
+
+    @Override
+    public Result logout(HttpServletRequest request) {
+        // 获取token
+        String token = request.getHeader("authorization");
+        // 删除redis中缓存的数据
+        Boolean isSuccess = stringRedisTemplate.delete(RedisConstants.LOGIN_USER_KEY + token);
+        // 判断是否成功
+        if (BooleanUtil.isFalse(isSuccess)) {
+            return Result.fail("登出失败");
+        }
+        return Result.ok();
     }
 
     private User createUserWithPhone(String phone) {
