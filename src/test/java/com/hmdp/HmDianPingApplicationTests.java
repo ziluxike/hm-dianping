@@ -5,6 +5,7 @@ import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
 import com.hmdp.service.impl.ShopServiceImpl;
 
+import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RedisIdWorker;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,6 +29,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+
+import static com.hmdp.utils.RedisConstants.SHOP_GEO_KEY;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -82,7 +85,7 @@ public class HmDianPingApplicationTests {
 
         for (Map.Entry<Long, List<Shop>> entry : map.entrySet()) {
             Long typeId = entry.getKey();
-            String key = "shop:geo:" + typeId;
+            String key = SHOP_GEO_KEY + typeId;
             List<Shop> value = entry.getValue();
 
             List<RedisGeoCommands.GeoLocation<String>> locations = new ArrayList<>();
